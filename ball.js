@@ -287,13 +287,13 @@ function startAudio() {
 }
 
 function onDocumentClick( event ) {
-	if ( !soundActive ) {
+	if ( soundActive === false ) {
 		startAudio();
 	}
 }
 
 function onTouch( event ) {
-	if ( !soundActive ) {
+	if ( soundActive === false ) {
 		startAudio();
 	}
 }
