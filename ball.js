@@ -244,6 +244,7 @@ function init() {
 	document.getElementById('canvas').appendChild(renderer.domElement);
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 	document.addEventListener( 'click', onDocumentClick, false );
+	document.addEventListener("touchstart", onTouch, false);
 }
 
 function animate() {
@@ -272,10 +273,7 @@ function onDocumentMouseMove( event ) {
 	raycaster.setFromCamera( mouse.clone(), camera );   
 }
 
-function onDocumentClick( event ) {
-	if ( soundActive ) {
-		return;
-	}
+function startAudio() {
 
 	soundActive = true;
 	var stream = "sounds/healing.mp3";
@@ -292,4 +290,16 @@ function onDocumentClick( event ) {
 		sound.setVolume( 0.5 );
 		sound.play();
 	});
+}
+
+function onDocumentClick( event ) {
+	if ( !soundActive ) {
+		startAudio;
+	}
+}
+
+function onTouch( event ) {
+	if ( !soundActive ) {
+		startAudio;
+	}
 }
