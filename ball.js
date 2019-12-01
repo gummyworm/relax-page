@@ -122,7 +122,6 @@ function eyeGuy(scene, pos, size) {
 		Math.floor( Math.random() * (2<<24) ),
 		Math.floor( Math.random() * (2<<24) ),
 	];
-	console.log(colors);
 	var bodyMat1 = new THREE.MeshBasicMaterial( { color: colors[0], transparent: true, opacity: 0.85 } );
 	var bodyGeom1 =  new THREE.SphereGeometry( 80, 32, 32 );
 	var bodyMat2 = new THREE.MeshBasicMaterial( { color: colors[1], transparent: true, opacity: 0.55 } );
@@ -227,18 +226,15 @@ function init() {
 	camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
 	camera.position.set( 0, 0, 500 );
 
-	//var listener = new THREE.AudioListener();
-	//camera.add( listener );
-
 	scene.add( new THREE.AmbientLight( 0x222222 ) );
 
 	var light = new THREE.PointLight( 0xffffff );
 	light.position.copy( camera.position );
 	scene.add( light );
-	//eyeGuy(scene, {x: 200, y: 130, z: -30}, .3);
-	//eyeGuy(scene, {x: 0, y: 0, z: 0}, 1);
-	//eyeGuy(scene, {x: -300, y: -30, z: -30}, .5);
-	scene.add(flyer ({x: -20, y: -100, z: 0}, {x: 0, y: 0, z: 0}, 100));
+	eyeGuy(scene, {x: 200, y: 130, z: -30}, .3);
+	eyeGuy(scene, {x: 0, y: 0, z: 0}, 1);
+	eyeGuy(scene, {x: -300, y: -30, z: -30}, .5);
+	scene.add(flyer ({x: -20, y: -100, z: 0}, {x: 0, y: 0, z: 0}, 80));
 	particles = rain();
 
 	document.getElementById('canvas').appendChild(renderer.domElement);
@@ -274,10 +270,8 @@ function onDocumentMouseMove( event ) {
 }
 
 function startAudio() {
-
 	soundActive = true;
 	var stream = "sounds/healing.mp3";
-	console.log('okay');
 	listener = new THREE.AudioListener();
 	camera.add( listener );
 	// create a global audio source
