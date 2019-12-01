@@ -278,7 +278,7 @@ function onDocumentClick( event ) {
 	}
 
 	soundActive = true;
-	var stream = "https://cdn.rawgit.com/ellenprobst/web-audio-api-with-Threejs/57582104/lib/TheWarOnDrugs.m4a";
+	var stream = "sounds/healing.mp3";
 	console.log('okay');
 	listener = new THREE.AudioListener();
 	camera.add( listener );
