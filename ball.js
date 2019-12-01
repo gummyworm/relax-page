@@ -288,12 +288,12 @@ function startAudio() {
 
 function onDocumentClick( event ) {
 	if ( !soundActive ) {
-		startAudio;
+		startAudio();
 	}
 }
 
 function onTouch( event ) {
 	if ( !soundActive ) {
-		startAudio;
+		startAudio();
 	}
 }
