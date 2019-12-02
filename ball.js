@@ -3,13 +3,13 @@ var raycaster = new THREE.Raycaster();
 var camera, scene, renderer, mesh, listener;
 var updateList = [];
 var particles = [];
+var creatures = [];
+var synth;
 
 init();
 animate();
 
 var soundActive = false;
-var objects = raycaster.intersectObjects(scene.children);
-var mouse = new THREE.Vector2();
 
 function sphere(x, y, z, radius, color) {
 	var geometry = new THREE.SphereGeometry( radius, 32, 32 );
@@ -105,7 +105,7 @@ function animEyeGuy(group, pos, rotation, size){
 	}).start();
 }
 
-function eyeGuy(scene, pos, size) {
+function eyeGuy(pos, size) {
 	/*
 	var sound = new THREE.Audio(listener);
 	var audioLoader = new THREE.AudioLoader();
@@ -151,9 +151,9 @@ function eyeGuy(scene, pos, size) {
 	group.add(iris2);
 	group.add(s);
 	group.add(aura);
-	scene.add(group);
 
 	animEyeGuy(group, pos, {x: 0, y: 0, z: 0}, size);
+	return group;
 }
 
 function heart(pos, rotation, scale, color) {
@@ -236,9 +236,15 @@ function init() {
 	var light = new THREE.PointLight( 0xffffff );
 	light.position.copy( camera.position );
 	scene.add( light );
-	eyeGuy(scene, {x: 200, y: 130, z: -30}, .3);
-	eyeGuy(scene, {x: 0, y: 0, z: 0}, 1);
-	eyeGuy(scene, {x: -300, y: -30, z: -30}, .5);
+
+	var guy1 = eyeGuy({x: 200, y: 130, z: -30}, .3);
+	var guy2 = eyeGuy({x: 0, y: 0, z: 0}, 1);
+	var guy3 = eyeGuy({x: -300, y: -30, z: -30}, .5);
+	scene.add(guy1);
+	scene.add(guy2);
+	scene.add(guy3);
+	creatures.push(guy1, guy2, guy3);
+
 	scene.add(flyer ({x: -20, y: -100, z: 0}, {x: 0, y: 0, z: 0}, 80));
 	particles = rain();
 
@@ -268,13 +274,34 @@ function animate() {
 }
 
 function onDocumentMouseMove( event ) {
+	var mouse = new THREE.Vector2();
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-	raycaster.setFromCamera( mouse.clone(), camera );   
+	raycaster.setFromCamera( mouse, camera );   
+	var intersects = raycaster.intersectObjects( creatures, true );
+	intersects.forEach( function(i) {
+		if (i.object.tweening) {
+			return;
+		}
+		if (soundActive && synth) {
+			synth.triggerAttackRelease('C4', '8n');
+		}
+		i.object.tweening = true;
+		const o = {opacity: i.object.material.opacity};
+		const tween = new TWEEN.Tween( o ).to( {opacity: Math.max(o.opacity + 0.5, 1)}, 500 )
+		.repeat(1)
+		.yoyo(true)
+		.onUpdate(function() {
+			i.object.material.opacity = o.opacity;
+		}).onComplete(function() {
+			i.object.tweening = false;
+		}).start();
+	});
 }
 
 function startAudio() {
 	soundActive = true;
+	var synth = new Tone.Synth().toDestination();
 	var stream = "sounds/healing.mp3";
 	listener = new THREE.AudioListener();
 	camera.add( listener );
