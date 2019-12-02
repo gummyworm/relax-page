@@ -106,17 +106,6 @@ function animEyeGuy(group, pos, rotation, size){
 }
 
 function eyeGuy(pos, size) {
-	/*
-	var sound = new THREE.Audio(listener);
-	var audioLoader = new THREE.AudioLoader();
-	audioLoader.load( 'sounds/ambient.ogg', function( buffer ) {
-			sound.setBuffer( buffer );
-			sound.setLoop( true );
-			sound.setVolume( 0.5 );
-			sound.play();
-	});
-	*/
-
 	var colors = [
 		Math.floor( Math.random() * (2<<24) ),
 		Math.floor( Math.random() * (2<<24) ),
@@ -300,8 +289,16 @@ function onDocumentMouseMove( event ) {
 }
 
 function startAudio() {
+	if ( soundActive ) {
+		return;
+	}
+	document.getElementById("click-message").remove();
+
+	StartAudioContext(Tone.context, '#button').then(function(){
+		synth = new Tone.Synth().toMaster();
+	})
 	soundActive = true;
-	var synth = new Tone.Synth().toDestination();
+	console.log("OK");
 	var stream = "sounds/healing.mp3";
 	listener = new THREE.AudioListener();
 	camera.add( listener );
@@ -318,13 +315,9 @@ function startAudio() {
 }
 
 function onDocumentClick( event ) {
-	if ( soundActive === false ) {
-		startAudio();
-	}
+	startAudio();
 }
 
 function onTouch( event ) {
-	if ( soundActive === false ) {
-		startAudio();
-	}
+	startAudio();
 }
