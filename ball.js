@@ -156,24 +156,24 @@ function eyeGuy(scene, pos, size) {
 	animEyeGuy(group, pos, {x: 0, y: 0, z: 0}, size);
 }
 
-function heart(pos, rotation, scale) {
+function heart(pos, rotation, scale, color) {
 	var x = pos.x, y = pos.y;
 	var heartShape = new THREE.Shape();
 
-	heartShape.moveTo( x + 5, y + 5 );
-	heartShape.bezierCurveTo( x + 5, y + 5, x + 4, y, x, y );
-	heartShape.bezierCurveTo( x - 6, y, x - 6, y + 7,x - 6, y + 7 );
-	heartShape.bezierCurveTo( x - 6, y + 11, x - 3, y + 15.4, x + 5, y + 19 );
-	heartShape.bezierCurveTo( x + 12, y + 15.4, x + 16, y + 11, x + 16, y + 7 );
-	heartShape.bezierCurveTo( x + 16, y + 7, x + 16, y, x + 10, y );
-	heartShape.bezierCurveTo( x + 7, y, x + 5, y + 5, x + 5, y + 5 );
+	heartShape.moveTo( .26, .26 );
+	heartShape.bezierCurveTo( .26, .26, .21, 0, 0, 0 );
+	heartShape.bezierCurveTo( -.31, 0, -.31, .37, -.31, .36 );
+	heartShape.bezierCurveTo( -.31, .579, -.158, .81, .26, 1 );
+	heartShape.bezierCurveTo( .63, .81, .84, .58, .84, .36 );
+	heartShape.bezierCurveTo( .84, .36, .84, 0, .53, 0 );
+	heartShape.bezierCurveTo( .36, 0, .26, .26, .26, .26 );
 
 	var geometry = new THREE.ShapeGeometry( heartShape );
-	var color = Math.floor( Math.random() * (2<<24) );
 	var material = new THREE.MeshBasicMaterial( { color: color } );
 	mesh = new THREE.Mesh( geometry, material ) ;
-	mesh.scale.x = scale.x;
-	mesh.scale.y = scale.y;
+	mesh.scale.x = scale;
+	mesh.scale.y = scale;
+	mesh.position.set( pos.x, pos.y, pos.z );
 	return mesh;
 }
 
@@ -203,9 +203,14 @@ function rain() {
 	for (var i = -10; i < 10; i++ ) {
 		for (var j = -10; j < 10; j++) {
 			var color = 0xffffff; //Math.floor( Math.random() * (2<<24) );
-			var c = circle(i*50 + Math.random()*20, j*50 + Math.random()*20, 0, Math.random()*2, color);
-			group.add(c);
-			particles.push(c);
+			var shape;
+			if ( Math.random() < 0.85 ) {
+				shape = circle(i*50 + Math.random()*20, j*50 + Math.random()*20, 0, Math.random()*2, color);
+			} else {
+				shape = heart({x: i*50 + Math.random()*20, y: j*50 + Math.random()*20, z: 0}, {}, Math.random()*4+4, color);
+			}
+			group.add(shape);
+			particles.push(shape);
 		}
 	}
 	scene.add(group);
@@ -247,8 +252,7 @@ function animate() {
 	particles.forEach( function(p) {
 		p.position.x += .1 * Math.random();
 		p.position.y -= .1 + Math.random()*.1;
-		p.rotation.x += Math.random()*.01;
-		p.rotation.y += Math.random()*.01;
+		p.rotation.z += Math.random()*.01;
 		if ( p.position.y < -500 ) {
 			p.position.y = 500;
 		}
