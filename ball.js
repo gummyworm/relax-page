@@ -5,11 +5,10 @@ var updateList = [];
 var particles = [];
 var creatures = [];
 var synth;
+var soundActive = false;
 
 init();
 animate();
-
-var soundActive = false;
 
 function sphere(x, y, z, radius, color) {
 	var geometry = new THREE.SphereGeometry( radius, 32, 32 );
@@ -288,17 +287,10 @@ function onDocumentMouseMove( event ) {
 	});
 }
 
-function startAudio() {
-	if ( soundActive ) {
-		return;
-	}
+StartAudioContext(Tone.context, '#canvas').then(function(){
 	document.getElementById("click-message").remove();
-
-	StartAudioContext(Tone.context, '#button').then(function(){
-		synth = new Tone.Synth().toMaster();
-	})
+	synth = new Tone.Synth().toMaster();
 	soundActive = true;
-	console.log("OK");
 	var stream = "sounds/healing.mp3";
 	listener = new THREE.AudioListener();
 	camera.add( listener );
@@ -312,12 +304,10 @@ function startAudio() {
 		sound.setVolume( 0.5 );
 		sound.play();
 	});
-}
+})
 
 function onDocumentClick( event ) {
-	startAudio();
 }
 
 function onTouch( event ) {
-	startAudio();
 }
