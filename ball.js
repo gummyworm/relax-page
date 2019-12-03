@@ -4,8 +4,17 @@ var camera, scene, renderer, mesh, listener;
 var updateList = [];
 var particles = [];
 var creatures = [];
-var synth;
+var synth, bgSynth;
 var soundActive = false;
+
+var chords = [
+["C3", "E3", "G3"],
+["C#3", "F3", "G#3"],
+["Db3", "F3", "Ab3"],
+["D3", "F#3", "A3"],
+["G3", "B3", "D3"],
+];
+var notes = ["A3", "B3", "C3", "D3", "E3", "F3", "G3"];
 
 init();
 animate();
@@ -104,7 +113,7 @@ function animEyeGuy(group, pos, rotation, size){
 	}).start();
 }
 
-function eyeGuy(pos, size) {
+function eyeGuy(pos, size, note) {
 	var colors = [
 		Math.floor( Math.random() * (2<<24) ),
 		Math.floor( Math.random() * (2<<24) ),
@@ -120,6 +129,7 @@ function eyeGuy(pos, size) {
 	var body = new THREE.Mesh( bodyGeom1, bodyMat1 );
 	var body2 = new THREE.Mesh( bodyGeom2, bodyMat2 );
 	var aura = new THREE.Mesh( sphereGeom, auraMat );
+	aura.note = note;
 	var e1 = circle( -20, 50, 90, 10, 0xffffff);
 	var e2 = circle( 20, 50, 90, 10, 0xffffff);
 	var cornea1 = circle( -20, 50, 99, 7, 0x5555ff);
@@ -141,6 +151,7 @@ function eyeGuy(pos, size) {
 	group.add(aura);
 
 	animEyeGuy(group, pos, {x: 0, y: 0, z: 0}, size);
+
 	return group;
 }
 
@@ -225,9 +236,10 @@ function init() {
 	light.position.copy( camera.position );
 	scene.add( light );
 
-	var guy1 = eyeGuy({x: 200, y: 130, z: -30}, .3);
-	var guy2 = eyeGuy({x: 0, y: 0, z: 0}, 1);
-	var guy3 = eyeGuy({x: -300, y: -30, z: -30}, .5);
+	notes = chords[Math.floor(Math.random() * chords.length)];
+	var guy1 = eyeGuy({x: 200, y: 130, z: -30}, .3, notes[0]);
+	var guy2 = eyeGuy({x: 0, y: 0, z: 0}, 1, notes[1]);
+	var guy3 = eyeGuy({x: -300, y: -30, z: -30}, .5, notes[2]);
 	scene.add(guy1);
 	scene.add(guy2);
 	scene.add(guy3);
@@ -272,7 +284,10 @@ function onDocumentMouseMove( event ) {
 			return;
 		}
 		if (soundActive && synth) {
-			synth.triggerAttackRelease('C4', '8n');
+			//play a chord
+			if (i.object.note) {
+				synth.triggerAttackRelease(i.object.note, "2n");
+			}
 		}
 		i.object.tweening = true;
 		const o = {opacity: i.object.material.opacity};
@@ -289,21 +304,19 @@ function onDocumentMouseMove( event ) {
 
 StartAudioContext(Tone.context, '#canvas').then(function(){
 	document.getElementById("click-message").remove();
-	synth = new Tone.Synth().toMaster();
+	//a polysynth composed of 6 Voices of Synth
+	synth = new Tone.Synth().toMaster()
+	bgSynth = new Tone.PolySynth(6, Tone.Synth, {
+	volume: -9,
+	oscillator : {
+		type : "triangle"
+	}
+	}).toMaster();
+	bgSynth.triggerAttack(chords[0]);
+		
 	soundActive = true;
-	var stream = "sounds/healing.mp3";
 	listener = new THREE.AudioListener();
 	camera.add( listener );
-	// create a global audio source
-	var sound = new THREE.Audio( listener );
-	// load a sound and set it as the Audio object's buffer
-	var audioLoader = new THREE.AudioLoader();
-	audioLoader.load( stream, function( buffer ) {
-		sound.setBuffer( buffer );
-		sound.setLoop( true );
-		sound.setVolume( 0.5 );
-		sound.play();
-	});
 })
 
 function onDocumentClick( event ) {
