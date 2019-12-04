@@ -25,7 +25,7 @@ var chords = [
 ["A3", "C3", "E3"],	// VI
 ];
 
-var chord;
+var chord = 0;
 var notes = ["A3", "B3", "C3", "D3", "E3", "F3", "G3"];
 
 init();
@@ -353,7 +353,7 @@ function touchGuys( mouse ) {
 function onDocumentMouseMove( event ) {
 }
 
-StartAudioContext(Tone.context, '#canvas').then(function(){
+StartAudioContext(Tone.context).then(function(){
 	document.getElementById("click-message").remove();
 	//a polysynth composed of 6 Voices of Synth
 	synth = new Tone.Synth({
