@@ -3,8 +3,8 @@ var raycaster = new THREE.Raycaster();
 var camera, scene, renderer, mesh, listener;
 var updateList = [];
 var particles = [];
+var particles2 = [];
 var creatures = [];
-var hearts = [];
 var synth, bgSynth;
 var soundActive = false;
 
@@ -16,13 +16,15 @@ var chords2 = [
 ["G2", "B2", "D2"],
 ];
 
+// c major
 var chords = [
-["C3", "E3", "G3"],
-["C#3", "F3", "G#3"],
-["Db3", "F3", "Ab3"],
-["D3", "F#3", "A3"],
-["G3", "B3", "D3"],
+["D3", "F#3", "A3"],	// II
+["E3","G3","B3"],	// III
+["F","A","C3"],	      // IV
+["G3", "B3", "D3"],   // V
+["A3", "C3", "E3"],	// VI
 ];
+
 var chord;
 var notes = ["A3", "B3", "C3", "D3", "E3", "F3", "G3"];
 
@@ -37,9 +39,14 @@ function sphere(x, y, z, radius, color) {
 	return geom
 }
 
-function circle(x, y, z, radius, color) {
+function circle(x, y, z, radius, color, opacity) {
 	var geometry = new THREE.CircleGeometry( radius, 32 );
-	var material = new THREE.MeshBasicMaterial( {color: color} );
+	var material;
+	if (opacity ) {
+		material = new THREE.MeshBasicMaterial( {color: color, transparent: true, opacity: opacity} );
+	} else {
+		material = new THREE.MeshBasicMaterial( {color: color} );
+	}
 	geom = new THREE.Mesh( geometry, material );
 	geom.position.set(x, y, z);
 	return geom
@@ -227,13 +234,13 @@ function rain() {
 }
 
 function spawnHeart(scene) {
-	var color = Math.floor( Math.random() * (2<<24) );
-	var pos = {x: Math.random() * window.innerWidth/2.0 - window.innerWidth/2.0, y: window.innerHeight/2.0, z: 0};
-	var shape = heart(pos, {}, 30, color);
+	var color = 0xffffff;
+	var pos = {x: Math.random() * window.innerWidth - window.innerWidth/2.0, y: window.innerHeight/3.0, z: -50};
+	var shape = circle(pos.x, pos.y, pos.z, Math.random()*10+15, color, 0.6);
 
 	shape.note = chords[chord][Math.floor(Math.random() * 3)];
 	scene.add(shape);
-	hearts.push(shape);
+	particles2.push(shape);
 
 	new TWEEN.Tween( pos ).to( {x: pos.x, y: -window.innerHeight/2.0}, 20000 ).onUpdate(function() {
 		shape.position.x = pos.x;
@@ -263,11 +270,9 @@ function init() {
 	light.position.copy( camera.position );
 	scene.add( light );
 
-	chord = Math.floor(Math.random() * chords.length);
-	notes = chords[chord];
-	var guy1 = eyeGuy({x: 200, y: 130, z: -30}, .3, notes[0]);
-	var guy2 = eyeGuy({x: 0, y: 0, z: 0}, 1, notes[1]);
-	var guy3 = eyeGuy({x: -300, y: -30, z: -30}, .5, notes[2]);
+	var guy1 = eyeGuy({x: 200, y: 130, z: -30}, .3, 0);
+	var guy2 = eyeGuy({x: 0, y: 0, z: 0}, 1, 1);
+	var guy3 = eyeGuy({x: -300, y: -30, z: -30}, .5, 2);
 	scene.add(guy1);
 	scene.add(guy2);
 	scene.add(guy3);
@@ -286,7 +291,19 @@ function init() {
 	document.addEventListener("touchstart", onTouch, false);
 }
 
+function resize(renderer) {
+  const canvas = renderer.domElement;
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  const needResize = canvas.width !== width || canvas.height !== height;
+  if (needResize) {
+    renderer.setSize(width, height, false);
+  }
+  return needResize;
+}
+
 function animate() {
+	resize(renderer);
 	particles.forEach( function(p) {
 		p.position.x += .1 * Math.random();
 		p.position.y -= .1 + Math.random()*.1;
@@ -305,34 +322,35 @@ function animate() {
 	renderer.render( scene, camera );
 }
 
-function onDocumentMouseMove( event ) {
-	var mouse = new THREE.Vector2();
-	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+function touchGuys( mouse ) {
 	raycaster.setFromCamera( mouse, camera );   
 	var intersects = raycaster.intersectObjects( creatures, true );
 	intersects.forEach( function(i) {
-		if (i.object.tweening) {
-			return;
-		}
 		if (soundActive && synth) {
 			//play a chord
-			if (i.object.note) {
-				synth.triggerAttackRelease(i.object.note, 2.0);
+			if (i.object.note !== undefined) {
+				console.log(i.object.note);
+				synth.triggerAttackRelease(chords[chord][i.object.note], 2.0);
 			}
 		}
-		i.object.tweening = true;
-		const o = {opacity: i.object.material.opacity};
-		const tween = new TWEEN.Tween( o ).to( {opacity: Math.max(o.opacity + 0.5, 1)}, 500 )
-		.repeat(1)
-		.yoyo(true)
-		.onUpdate(function() {
-			i.object.material.opacity = o.opacity;
-		}).onComplete(function() {
-			i.object.tweening = false;
-		}).start();
-	});
 
+		const o = {opacity: 1.0};
+		if (!i.object.tween) {
+			i.object.tween = new TWEEN.Tween( o ).to( {opacity: i.object.material.opacity}, 300 )
+			.onUpdate(function() {
+				i.object.material.opacity = o.opacity;
+			}).onComplete(function() {
+				delete i.object.tween;
+			})
+		} else {
+			TWEEN.remove(i.object.tween);
+		}
+		i.object.tween.start();
+	});
+}
+
+function onDocumentMouseMove( event ) {
 }
 
 StartAudioContext(Tone.context, '#canvas').then(function(){
@@ -345,7 +363,6 @@ StartAudioContext(Tone.context, '#canvas').then(function(){
 	    sustain: 0.2,
 	    release: 0.4
 	  },
-	  volume: -3
 	}).toMaster();
 	bgSynth = new Tone.PolySynth(6, Tone.Synth, {
 	volume: -9,
@@ -356,15 +373,19 @@ StartAudioContext(Tone.context, '#canvas').then(function(){
 	    attack: 0.01,
 	    decay: 0.1,
 	    sustain: 0.3,
-	    release: 0.2
+	    release: 0.4
 	  }
 	}).toMaster();
 
+	chord = 0;
 	bgSynth.triggerAttackRelease(chords[0], 9);
 	setInterval(function() {
-		var c = Math.floor(Math.random() * chords.length);
-		bgSynth.triggerAttackRelease(chords[c], 9);
-	}, 10000);
+		chord += 3 % chords.length;
+		if ( chord >= chords.length) {
+			chord = 0;
+		}
+		bgSynth.triggerAttackRelease(chords[chord], 4.5);
+	}, 5000);
 		
 	soundActive = true;
 	listener = new THREE.AudioListener();
@@ -375,25 +396,12 @@ function onDocumentClick( event ) {
 	var mouse = new THREE.Vector2();
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-	raycaster.setFromCamera( mouse, camera );   
-	var intersects = raycaster.intersectObjects( hearts, true );
-	intersects.forEach( function(i) {
-		if (soundActive) {
-			//play a note
-			if (i.object.note) {
-				synth.triggerAttackRelease(i.object.note, "1n");
-			}
-		}
-		const o = {opacity: i.object.material.opacity};
-		const tween = new TWEEN.Tween( o ).to( {opacity: Math.max(o.opacity + 0.5, 1)}, 1000 )
-		.onUpdate(function() {
-			i.object.material.opacity = o.opacity;
-			i.object.scale += 0.15;
-		}).onComplete(function() {
-			scene.remove(i.object);
-		}).start();
-	});
+	touchGuys(mouse);
 }
 
 function onTouch( event ) {
+	var mouse = new THREE.Vector2();
+	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+	touchGuys(mouse);
 }
