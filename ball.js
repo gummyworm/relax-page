@@ -16,6 +16,15 @@ var chords2 = [
 ["G2", "B2", "D2"],
 ];
 
+// array of notes for each voice
+var trackLen = 8;
+var track = [];
+// note that each voice is playing
+var voices = [];
+var tempo = 1000; // ms to advance note
+var playIndex = 0;
+var recording = ["", "", ""];
+
 // c major
 var chords = [
 ["D3", "F#3", "A3"],	// II
@@ -147,6 +156,7 @@ function eyeGuy(pos, size, note) {
 	var body2 = new THREE.Mesh( bodyGeom2, bodyMat2 );
 	var aura = new THREE.Mesh( sphereGeom, auraMat );
 	aura.note = note;
+	aura.index = note;
 	var e1 = circle( -20, 50, 90, 10, 0xffffff);
 	var e2 = circle( 20, 50, 90, 10, 0xffffff);
 	var cornea1 = circle( -20, 50, 99, 7, 0x5555ff);
@@ -280,14 +290,27 @@ function init() {
 
 	//scene.add(flyer ({x: -20, y: -100, z: 0}, {x: 0, y: 0, z: 0}, 80));
 	particles = rain();
+	
+	for ( var i = 0; i < creatures.length; i++ ) {
+		var t = []
+		for ( var j = 0; j < trackLen; j++ ) {
+			t.push("");
+		}
+		track.push(t);
+	}
 
 	setInterval(function() {
 		spawnHeart(scene);
 	}, 1000);
 
+	setInterval(function() {
+		play();
+	}, tempo);
+
 	document.getElementById('canvas').appendChild(renderer.domElement);
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-	document.addEventListener( 'click', onDocumentClick, false );
+	document.addEventListener( 'mousedown', onDocumentClick, false );
+	document.addEventListener( 'mouseup', untouchGuys, false );
 	document.addEventListener("touchstart", onTouch, false);
 }
 
@@ -322,6 +345,46 @@ function animate() {
 	renderer.render( scene, camera );
 }
 
+function untouchGuys( mouse ) { 
+	console.log("DONE!!");
+	for ( i = 0; i < creatures.length; i++ ) {
+		recording[i] = null;
+	};
+}
+
+function tweenOpacityAll( mesh ) {
+	mesh.traverse( function( node ) {
+	    if( node.material ) {
+		const o = {opacity: 1.0};
+		new TWEEN.Tween( o ).to( {opacity: node.material.opacity}, tempo/2 )
+		.onUpdate(function() {
+			node.material.opacity = o.opacity;
+		}).start();
+	    }
+	});
+}
+
+function play() {
+	for ( var i = 0; i < creatures.length; i++ ) {
+		console.log(recording);
+		if ( recording[i] ) {
+			track[i][playIndex] = recording[i];
+		}
+	}
+
+	for ( var v = 0; v < track.length; v++ ) {
+		voices[v] = track[v][playIndex];
+		console.log(voices[v]);
+		if ( voices[v] ) {
+			tweenOpacityAll(creatures[v]);
+			synth.triggerAttackRelease(chords[chord][voices[v]], tempo / 100.0);
+		}
+	}
+	playIndex++;
+	if ( playIndex >= trackLen ) {
+		playIndex = 0;
+	}
+}
 
 function touchGuys( mouse ) {
 	raycaster.setFromCamera( mouse, camera );   
@@ -330,8 +393,9 @@ function touchGuys( mouse ) {
 		if (soundActive && synth) {
 			//play a chord
 			if (i.object.note !== undefined) {
-				console.log(i.object.note);
-				synth.triggerAttackRelease(chords[chord][i.object.note], 2.0);
+				synth.triggerAttackRelease(chords[0][i.object.note], 2.0);
+				track[i.object.index][playIndex] = i.object.note;
+				recording[i.object.index] = i.object.note;
 			}
 		}
 
