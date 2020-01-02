@@ -8,6 +8,8 @@ var creatures = [];
 var synth, bgSynth;
 var soundActive = false;
 
+const auraOpacity = 0.25;
+
 var chords2 = [
 ["C2", "E2", "G2"],
 ["C#2", "F2", "G#2"],
@@ -178,6 +180,7 @@ function eyeGuy(pos, size, note) {
 	group.add(aura);
 
 	animEyeGuy(group, pos, {x: 0, y: 0, z: 0}, size);
+	group.aura = aura;
 
 	return group;
 }
@@ -346,7 +349,6 @@ function animate() {
 }
 
 function untouchGuys( mouse ) { 
-	console.log("DONE!!");
 	for ( i = 0; i < creatures.length; i++ ) {
 		recording[i] = null;
 	};
@@ -366,7 +368,6 @@ function tweenOpacityAll( mesh ) {
 
 function play() {
 	for ( var i = 0; i < creatures.length; i++ ) {
-		console.log(recording);
 		if ( recording[i] ) {
 			track[i][playIndex] = recording[i];
 		}
@@ -374,7 +375,6 @@ function play() {
 
 	for ( var v = 0; v < track.length; v++ ) {
 		voices[v] = track[v][playIndex];
-		console.log(voices[v]);
 		if ( voices[v] ) {
 			tweenOpacityAll(creatures[v]);
 			synth.triggerAttackRelease(chords[chord][voices[v]], tempo / 100.0);
@@ -400,17 +400,10 @@ function touchGuys( mouse ) {
 		}
 
 		const o = {opacity: 1.0};
-		if (!i.object.tween) {
-			i.object.tween = new TWEEN.Tween( o ).to( {opacity: i.object.material.opacity}, 300 )
-			.onUpdate(function() {
-				i.object.material.opacity = o.opacity;
-			}).onComplete(function() {
-				delete i.object.tween;
-			})
-		} else {
-			TWEEN.remove(i.object.tween);
-		}
-		i.object.tween.start();
+		new TWEEN.Tween( o ).to( {opacity: auraOpacity}, 300 )
+		.onUpdate(function() {
+			i.object.parent.aura.material.opacity = o.opacity;
+		}).start();
 	});
 }
 
