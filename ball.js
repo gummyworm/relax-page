@@ -120,7 +120,7 @@ function animFlyer(group, arm1, arm2, pos, rotation, size){
 	}).start();
 }
 
-function animEyeGuy(group, pos, rotation, size){
+function animEyeGuy(group, tail, pos, rotation, size){
 	var target = { z:  rad90 / 8};
 	var position = pos;
 	var targetPos = {x: pos.x + 50, y: pos.y + 100};
@@ -139,6 +139,39 @@ function animEyeGuy(group, pos, rotation, size){
 		group.scale.y = scale.y;
 		group.scale.z = scale.z;
 	}).start();
+
+	var time = {t: 0};
+	var tailTween = new TWEEN.Tween( time ).to( {t: Math.PI * 2 }, 5000)
+	.repeat(Infinity).onUpdate(function() {
+		const n = tail.children.length;
+		for( var i = 0; i < n; i++ ) {
+			tail.children[i].position.x = 50*Math.sin( i / n * (Math.PI*2) + time.t );
+		}
+	}).start();
+}
+
+// returns an array of geometry to make up a sphere "tail"
+function makeTail(color) {
+	var group = new THREE.Group();
+	var y = 0;
+	var colorAdd = 0x01;
+	for (var i = 0; i < 10; i++) {
+		var size = 50 + Math.random() * 20;
+		y -= size*1.5;
+		
+		color = color | ((color - (colorAdd<<16)) & 0xff0000);
+		color = color | ((color - (colorAdd<<8)) & 0xff00);
+		color = color | ((color - (colorAdd)) & 0xff);
+
+		var mat = new THREE.MeshBasicMaterial( { color: color, transparent: true, opacity: 0.65 } );
+		var geom = new THREE.SphereGeometry( size, 32, 32 );
+		mesh = new THREE.Mesh( geom, mat );
+		mesh.position.x = Math.sin( i / 10 * Math.PI * 2 ) * size;
+		mesh.position.y = y;
+		mesh.renderOrder = -1;
+		group.add(mesh);
+	}
+	return group;
 }
 
 function eyeGuy(pos, size, note) {
@@ -168,6 +201,8 @@ function eyeGuy(pos, size, note) {
 	var s = smile( 0, 10, 50, 20, 0xffffff);
 
 	var group = new THREE.Group();
+	var tail = makeTail(colors[0]);
+	tail.position.y = -130;
 	group.add(body);
 	group.add(body2);
 	group.add(e1);
@@ -178,8 +213,10 @@ function eyeGuy(pos, size, note) {
 	group.add(iris2);
 	group.add(s);
 	group.add(aura);
+	group.add(tail);
+	group.tail = tail;
 
-	animEyeGuy(group, pos, {x: 0, y: 0, z: 0}, size);
+	animEyeGuy(group, tail, pos, {x: 0, y: 0, z: 0}, size);
 	group.aura = aura;
 
 	return group;
@@ -366,6 +403,26 @@ function tweenOpacityAll( mesh ) {
 	});
 }
 
+function playTail( tail ) {
+	var i = 0;
+	setInterval(function() {
+		i++;
+		var mesh = tail.children[i % tail.children.length];
+		tweenOpacityAll( mesh );
+
+	}, tempo)
+
+	mesh.traverse( function( node ) {
+	    if( node.material ) {
+		const o = {opacity: 1.0};
+		new TWEEN.Tween( o ).to( {opacity: node.material.opacity}, tempo/2 )
+		.onUpdate(function() {
+			node.material.opacity = o.opacity;
+		}).start();
+	    }
+	});
+}
+
 function play() {
 	for ( var i = 0; i < creatures.length; i++ ) {
 		if ( recording[i] ) {
@@ -378,6 +435,7 @@ function play() {
 		if ( voices[v] ) {
 			tweenOpacityAll(creatures[v]);
 			synth.triggerAttackRelease(chords[chord][voices[v]], tempo / 100.0);
+			playTail(creatures[v].tail);
 		}
 	}
 	playIndex++;
@@ -398,12 +456,10 @@ function touchGuys( mouse ) {
 				recording[i.object.index] = i.object.note;
 			}
 		}
-
-		const o = {opacity: 1.0};
-		new TWEEN.Tween( o ).to( {opacity: auraOpacity}, 300 )
-		.onUpdate(function() {
-			i.object.parent.aura.material.opacity = o.opacity;
-		}).start();
+		if ( i.object.parent.aura ) {
+			tweenOpacityAll( i.object.parent.aura );
+			playTail(i.object.parent.tail);
+		}
 	});
 }
 
