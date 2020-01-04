@@ -39,68 +39,95 @@ var chords = [
 var chord = 0;
 var notes = ["A3", "B3", "C3", "D3", "E3", "F3", "G3"];
 
-init();
-animate();
-
-function sphere(x, y, z, radius, color) {
-	var geometry = new THREE.SphereGeometry( radius, 32, 32 );
-	var material = new THREE.MeshBasicMaterial( {color: color} );
-	geom = new THREE.Mesh( geometry, material );
-	geom.position.set(x, y, z);
-	return geom
-}
-
-function circle(x, y, z, radius, color, opacity) {
-	var geometry = new THREE.CircleGeometry( radius, 32 );
-	var material;
-	if (opacity ) {
-		material = new THREE.MeshBasicMaterial( {color: color, transparent: true, opacity: opacity} );
-	} else {
-		material = new THREE.MeshBasicMaterial( {color: color} );
-	}
-	geom = new THREE.Mesh( geometry, material );
-	geom.position.set(x, y, z);
-	return geom
-}
-
-function triangle(x, y, z, color) {
-	v0 = new THREE.Vector3(0,0,0);
-	v1 = new THREE.Vector3(1,1,0);
-	v2 = new THREE.Vector3(0,1,0);
-	var geometry = new THREE.Face3( v0, v1, v2 );
-	var material = new THREE.MeshBasicMaterial( {color: color} );
-	geom = new THREE.Mesh( geometry, material );
-	geom.position.set(x, y, z);
-	return geom
-}
-
-function smile(x, y, z, radius, color ) {
-	var geom = new THREE.Geometry();
-	for( var j = Math.PI; j < Math.PI * 2; j += 2 * Math.PI / 100 ) {
-		var v = new THREE.Vector3( radius * Math.cos( j ), radius * Math.sin( j ), z );
-		geom.vertices.push( v );
+class Creature {
+	constructor(pos) {
 	}
 
-	var line = new MeshLine();
-	line.setGeometry( geom, function(p) {return 2;} );
-	var material = new MeshLineMaterial( {color: color} );
-	mesh = new THREE.Mesh( line.geometry, material );
-	mesh.position.set(x, y, z);
-	return mesh;
+	onTouch(evt) {
+	}
+
+	animate() {
+	}
 }
 
-function flyer(pos, rotation, size) {
-	var color = Math.floor( Math.random() * (2<<24) );
-	var body = circle(pos.x, pos.y, pos.z, size, color);
-	color = Math.floor( Math.random() * (2<<24) );
-	var arm1 = leaf({x: pos.x + size/4, y: pos.y-size/4, z: pos.z}, {}, size/70, color);
-	var arm2 = leaf({x: pos.x - size/4, y: pos.y-size/4, z: pos.z}, {}, size/70, color);
-	var group = new THREE.Group();
-	group.add(arm1);
-	group.add(arm2);
-	group.add(body);
-	animFlyer(group, arm1, arm2, pos, rotation, size);
-	return group;
+class EyeGuy extends Creature {
+	constructor(pos, size, note) {
+		super();
+		var colors = [
+			Math.floor( Math.random() * (2<<24) ),
+			Math.floor( Math.random() * (2<<24) ),
+			Math.floor( Math.random() * (2<<24) ),
+		];
+		var bodyMat1 = new THREE.MeshBasicMaterial( { color: colors[0], transparent: true, opacity: 0.85 } );
+		var bodyGeom1 =  new THREE.SphereGeometry( 80, 32, 32 );
+		var bodyMat2 = new THREE.MeshBasicMaterial( { color: colors[1], transparent: true, opacity: 0.55 } );
+		var bodyGeom2 =  new THREE.SphereGeometry( 100, 32, 32 );
+		var auraMat = new THREE.MeshBasicMaterial( { color: colors[2], transparent: true, opacity: 0.15 } );
+		var sphereGeom =  new THREE.SphereGeometry( 140, 32, 32 );
+
+		var body = new THREE.Mesh( bodyGeom1, bodyMat1 );
+		var body2 = new THREE.Mesh( bodyGeom2, bodyMat2 );
+		var aura = new THREE.Mesh( sphereGeom, auraMat );
+		aura.note = note;
+		aura.index = note;
+		var e1 = circle( -20, 50, 90, 10, 0xffffff);
+		var e2 = circle( 20, 50, 90, 10, 0xffffff);
+		var cornea1 = circle( -20, 50, 99, 7, 0x5555ff);
+		var cornea2 = circle( 20, 50, 99, 7, 0x5555ff);
+		var iris1 = circle( -20, 50, 100, 5, 0x000000);
+		var iris2 = circle( 20, 50, 100, 5, 0x000000);
+		var s = smile( 0, 10, 50, 20, 0xffffff);
+
+		var group = new THREE.Group();
+		var tail = makeTail(colors[0]);
+		tail.position.y = -130;
+		group.add(body);
+		group.add(body2);
+		group.add(e1);
+		group.add(e2);
+		group.add(cornea1);
+		group.add(cornea2);
+		group.add(iris1);
+		group.add(iris2);
+		group.add(s);
+		group.add(aura);
+		group.add(tail);
+		group.tail = tail;
+
+		this.animate(group, tail, pos, {x: 0, y: 0, z: 0}, size);
+		group.aura = aura;
+		return group;
+	}
+
+	animate(group, tail, pos, rotation, size){
+		var target = { z:  rad90 / 8};
+		var position = pos;
+		var targetPos = {x: pos.x + 50, y: pos.y + 100};
+		var scale = {x: size, y: size, z: size };
+		var targetScale = {x: scale.x + .2, y: scale.y + .2, z: scale.z + .2};
+
+		var tween = new TWEEN.Tween( rotation ).to( target, Math.random() * 10000 + 9000 ).yoyo(true).repeat(Infinity).onUpdate(function() {
+			group.rotation.z = rotation.z;
+		}).start();
+		var posTween = new TWEEN.Tween( position ).to( targetPos, Math.random() * 6000 + 15000 ).yoyo(true).repeat(Infinity).onUpdate(function() {
+			group.position.y = position.y;
+			group.position.x = position.x;
+		}).start();
+		var scaleTween = new TWEEN.Tween( scale ).to( targetScale, Math.random() * 10000 + 29000 ).yoyo(true).repeat(Infinity).onUpdate(function() {
+			group.scale.x = scale.x;
+			group.scale.y = scale.y;
+			group.scale.z = scale.z;
+		}).start();
+
+		var time = {t: 0};
+		var tailTween = new TWEEN.Tween( time ).to( {t: Math.PI * 2 }, 5000)
+		.repeat(Infinity).onUpdate(function() {
+			const n = tail.children.length;
+			for( var i = 0; i < n; i++ ) {
+				tail.children[i].position.x = 50*Math.sin( i / n * (Math.PI*2) + time.t );
+			}
+		}).start();
+	}
 }
 
 function animFlyer(group, arm1, arm2, pos, rotation, size){
@@ -117,36 +144,6 @@ function animFlyer(group, arm1, arm2, pos, rotation, size){
 	var posTween = new TWEEN.Tween( pos).to( targetPos, Math.random() * 6000 + 15000 ).yoyo(true).repeat(Infinity).onUpdate(function() {
 		group.position.y = pos.y;
 		group.position.x = pos.x;
-	}).start();
-}
-
-function animEyeGuy(group, tail, pos, rotation, size){
-	var target = { z:  rad90 / 8};
-	var position = pos;
-	var targetPos = {x: pos.x + 50, y: pos.y + 100};
-	var scale = {x: size, y: size, z: size };
-	var targetScale = {x: scale.x + .2, y: scale.y + .2, z: scale.z + .2};
-
-	var tween = new TWEEN.Tween( rotation ).to( target, Math.random() * 10000 + 9000 ).yoyo(true).repeat(Infinity).onUpdate(function() {
-		group.rotation.z = rotation.z;
-	}).start();
-	var posTween = new TWEEN.Tween( position ).to( targetPos, Math.random() * 6000 + 15000 ).yoyo(true).repeat(Infinity).onUpdate(function() {
-		group.position.y = position.y;
-		group.position.x = position.x;
-	}).start();
-	var scaleTween = new TWEEN.Tween( scale ).to( targetScale, Math.random() * 10000 + 29000 ).yoyo(true).repeat(Infinity).onUpdate(function() {
-		group.scale.x = scale.x;
-		group.scale.y = scale.y;
-		group.scale.z = scale.z;
-	}).start();
-
-	var time = {t: 0};
-	var tailTween = new TWEEN.Tween( time ).to( {t: Math.PI * 2 }, 5000)
-	.repeat(Infinity).onUpdate(function() {
-		const n = tail.children.length;
-		for( var i = 0; i < n; i++ ) {
-			tail.children[i].position.x = 50*Math.sin( i / n * (Math.PI*2) + time.t );
-		}
 	}).start();
 }
 
@@ -169,58 +166,12 @@ function makeTail(color) {
 		mesh.position.x = Math.sin( i / 10 * Math.PI * 2 ) * size;
 		mesh.position.y = y;
 		mesh.renderOrder = -1;
+		mesh.note = notes[i % notes.length];
 		group.add(mesh);
 	}
 	return group;
 }
 
-function eyeGuy(pos, size, note) {
-	var colors = [
-		Math.floor( Math.random() * (2<<24) ),
-		Math.floor( Math.random() * (2<<24) ),
-		Math.floor( Math.random() * (2<<24) ),
-	];
-	var bodyMat1 = new THREE.MeshBasicMaterial( { color: colors[0], transparent: true, opacity: 0.85 } );
-	var bodyGeom1 =  new THREE.SphereGeometry( 80, 32, 32 );
-	var bodyMat2 = new THREE.MeshBasicMaterial( { color: colors[1], transparent: true, opacity: 0.55 } );
-	var bodyGeom2 =  new THREE.SphereGeometry( 100, 32, 32 );
-	var auraMat = new THREE.MeshBasicMaterial( { color: colors[2], transparent: true, opacity: 0.15 } );
-	var sphereGeom =  new THREE.SphereGeometry( 140, 32, 32 );
-
-	var body = new THREE.Mesh( bodyGeom1, bodyMat1 );
-	var body2 = new THREE.Mesh( bodyGeom2, bodyMat2 );
-	var aura = new THREE.Mesh( sphereGeom, auraMat );
-	aura.note = note;
-	aura.index = note;
-	var e1 = circle( -20, 50, 90, 10, 0xffffff);
-	var e2 = circle( 20, 50, 90, 10, 0xffffff);
-	var cornea1 = circle( -20, 50, 99, 7, 0x5555ff);
-	var cornea2 = circle( 20, 50, 99, 7, 0x5555ff);
-	var iris1 = circle( -20, 50, 100, 5, 0x000000);
-	var iris2 = circle( 20, 50, 100, 5, 0x000000);
-	var s = smile( 0, 10, 50, 20, 0xffffff);
-
-	var group = new THREE.Group();
-	var tail = makeTail(colors[0]);
-	tail.position.y = -130;
-	group.add(body);
-	group.add(body2);
-	group.add(e1);
-	group.add(e2);
-	group.add(cornea1);
-	group.add(cornea2);
-	group.add(iris1);
-	group.add(iris2);
-	group.add(s);
-	group.add(aura);
-	group.add(tail);
-	group.tail = tail;
-
-	animEyeGuy(group, tail, pos, {x: 0, y: 0, z: 0}, size);
-	group.aura = aura;
-
-	return group;
-}
 
 function heart(pos, rotation, scale, color) {
 	var x = pos.x, y = pos.y;
@@ -320,9 +271,9 @@ function init() {
 	light.position.copy( camera.position );
 	scene.add( light );
 
-	var guy1 = eyeGuy({x: 200, y: 130, z: -30}, .3, 0);
-	var guy2 = eyeGuy({x: 0, y: 0, z: 0}, 1, 1);
-	var guy3 = eyeGuy({x: -300, y: -30, z: -30}, .5, 2);
+	var guy1 = new EyeGuy({x: 200, y: 130, z: -30}, .3, 0);
+	var guy2 = new EyeGuy({x: 0, y: 0, z: 0}, 1, 1);
+	var guy3 = new EyeGuy({x: -300, y: -30, z: -30}, .5, 2);
 	scene.add(guy1);
 	scene.add(guy2);
 	scene.add(guy3);
@@ -403,14 +354,15 @@ function tweenOpacityAll( mesh ) {
 	});
 }
 
-function playTail( tail ) {
+function playTail( tail, voice ) {
 	var i = 0;
 	setInterval(function() {
 		i++;
 		var mesh = tail.children[i % tail.children.length];
 		tweenOpacityAll( mesh );
-
-	}, tempo)
+		console.log( mesh.note );
+		synth.triggerAttackRelease(mesh.note, tempo / 400.0);
+	}, tempo/4)
 
 	mesh.traverse( function( node ) {
 	    if( node.material ) {
@@ -435,7 +387,6 @@ function play() {
 		if ( voices[v] ) {
 			tweenOpacityAll(creatures[v]);
 			synth.triggerAttackRelease(chords[chord][voices[v]], tempo / 100.0);
-			playTail(creatures[v].tail);
 		}
 	}
 	playIndex++;
@@ -458,7 +409,7 @@ function touchGuys( mouse ) {
 		}
 		if ( i.object.parent.aura ) {
 			tweenOpacityAll( i.object.parent.aura );
-			playTail(i.object.parent.tail);
+			playTail(i.object.parent.tail, i.object.index );
 		}
 	});
 }
@@ -518,3 +469,6 @@ function onTouch( event ) {
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 	touchGuys(mouse);
 }
+
+init();
+animate();
