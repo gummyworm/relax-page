@@ -18,9 +18,6 @@ var chords2 = [
 ["G2", "B2", "D2"],
 ];
 
-// array of notes for each voice
-var trackLen = 8;
-var track = [];
 // note that each voice is playing
 var voices = [];
 var tempo = 1000; // ms to advance note
@@ -172,48 +169,6 @@ function makeTail(color) {
 	return group;
 }
 
-
-function heart(pos, rotation, scale, color) {
-	var x = pos.x, y = pos.y;
-	var heartShape = new THREE.Shape();
-
-	heartShape.moveTo( .26, .26 );
-	heartShape.bezierCurveTo( .26, .26, .21, 0, 0, 0 );
-	heartShape.bezierCurveTo( -.31, 0, -.31, .37, -.31, .36 );
-	heartShape.bezierCurveTo( -.31, .579, -.158, .81, .26, 1 );
-	heartShape.bezierCurveTo( .63, .81, .84, .58, .84, .36 );
-	heartShape.bezierCurveTo( .84, .36, .84, 0, .53, 0 );
-	heartShape.bezierCurveTo( .36, 0, .26, .26, .26, .26 );
-
-	var geometry = new THREE.ShapeGeometry( heartShape );
-	var material = new THREE.MeshBasicMaterial( { color: color } );
-	mesh = new THREE.Mesh( geometry, material ) ;
-	mesh.scale.x = scale;
-	mesh.scale.y = scale;
-	mesh.position.set( pos.x, pos.y, pos.z );
-	return mesh;
-}
-
-function leaf(pos, rotation, scale, color) {
-	var x = pos.x, y = pos.y;
-	var leafShape = new THREE.Shape();
-
-	leafShape.moveTo( x + 5, y + 5 );
-	leafShape.bezierCurveTo( x + 5, y + 5, x + 4, y, x, y );
-	leafShape.bezierCurveTo( x - 6, y, x - 6, y + 7,x - 6, y + 7 );
-	leafShape.bezierCurveTo( x - 6, y + 11, x - 3, y + 15.4, x + 5, y + 19 );
-	leafShape.bezierCurveTo( x + 12, y + 15.4, x + 16, y + 11, x + 16, y + 7 );
-	leafShape.bezierCurveTo( x + 16, y + 7, x + 16, y, x + 10, y );
-	leafShape.bezierCurveTo( x + 7, y, x + 5, y + 5, x + 5, y + 5 );
-
-	var geometry = new THREE.ShapeGeometry( leafShape );
-	var material = new THREE.MeshBasicMaterial( { color: color } );
-	mesh = new THREE.Mesh( geometry, material ) ;
-	mesh.scale.x = scale;
-	mesh.scale.y = scale;
-	return mesh;
-}
-
 function rain() {
 	var group = new THREE.Group();
 	var particles = [];
@@ -282,14 +237,6 @@ function init() {
 	//scene.add(flyer ({x: -20, y: -100, z: 0}, {x: 0, y: 0, z: 0}, 80));
 	particles = rain();
 	
-	for ( var i = 0; i < creatures.length; i++ ) {
-		var t = []
-		for ( var j = 0; j < trackLen; j++ ) {
-			t.push("");
-		}
-		track.push(t);
-	}
-
 	setInterval(function() {
 		spawnHeart(scene);
 	}, 1000);
@@ -356,13 +303,13 @@ function tweenOpacityAll( mesh ) {
 
 function playTail( tail, voice ) {
 	var i = 0;
-	setInterval(function() {
-		i++;
-		var mesh = tail.children[i % tail.children.length];
+	setIntervalX(function() {
+		var mesh = tail.children[i];
 		tweenOpacityAll( mesh );
 		console.log( mesh.note );
-		synth.triggerAttackRelease(mesh.note, tempo / 400.0);
-	}, tempo/4)
+		synth.triggerAttackRelease(mesh.note, tempo / 4000.0);
+		i++;
+	}, tempo/4, tail.children.length)
 
 	mesh.traverse( function( node ) {
 	    if( node.material ) {
@@ -375,26 +322,6 @@ function playTail( tail, voice ) {
 	});
 }
 
-function play() {
-	for ( var i = 0; i < creatures.length; i++ ) {
-		if ( recording[i] ) {
-			track[i][playIndex] = recording[i];
-		}
-	}
-
-	for ( var v = 0; v < track.length; v++ ) {
-		voices[v] = track[v][playIndex];
-		if ( voices[v] ) {
-			tweenOpacityAll(creatures[v]);
-			synth.triggerAttackRelease(chords[chord][voices[v]], tempo / 100.0);
-		}
-	}
-	playIndex++;
-	if ( playIndex >= trackLen ) {
-		playIndex = 0;
-	}
-}
-
 function touchGuys( mouse ) {
 	raycaster.setFromCamera( mouse, camera );   
 	var intersects = raycaster.intersectObjects( creatures, true );
@@ -403,8 +330,6 @@ function touchGuys( mouse ) {
 			//play a chord
 			if (i.object.note !== undefined) {
 				synth.triggerAttackRelease(chords[0][i.object.note], 2.0);
-				track[i.object.index][playIndex] = i.object.note;
-				recording[i.object.index] = i.object.note;
 			}
 		}
 		if ( i.object.parent.aura ) {
